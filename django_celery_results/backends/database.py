@@ -1,5 +1,7 @@
 from __future__ import absolute_import, unicode_literals
 
+import json
+
 from celery.backends.base import BaseDictBackend
 from celery.utils.serialization import b64encode, b64decode
 
@@ -20,6 +22,12 @@ class DatabaseBackend(BaseDictBackend):
         _, _, meta = self.encode_content({
             'children': self.current_task_children(request),
         })
+
+        # okay, the correct way would be to write an own serializer?
+        # but to save jsonb in postgres, just check for application/json and the load the json
+        if content_type == 'application/json':
+            result = json.loads(result, encoding=content_encoding)
+            content_type = 'jsonb'
 
         task_name = getattr(request, 'task', None) if request else None
         task_args = getattr(request, 'args', None) if request else None

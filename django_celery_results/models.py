@@ -3,6 +3,7 @@ from __future__ import absolute_import, unicode_literals
 
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
+from django.contrib.postgres.fields import JSONField
 
 from celery import states
 from celery.five import python_2_unicode_compatible
@@ -17,17 +18,18 @@ TASK_STATE_CHOICES = sorted(zip(ALL_STATES, ALL_STATES))
 class TaskResult(models.Model):
     """Task result/status."""
 
+    JSON_MAX_LENGTH = 1024 * 32
     task_id = models.CharField(_('task id'), max_length=255, unique=True)
     task_name = models.CharField(_('task name'), null=True, max_length=255)
     task_args = models.TextField(_('task arguments'), null=True)
-    task_kwargs = models.TextField(_('task kwargs'), null=True)
+    task_kwargs = JSONField(_('task kwargs'), null=True, max_length=JSON_MAX_LENGTH)
     status = models.CharField(_('state'), max_length=50,
                               default=states.PENDING,
                               choices=TASK_STATE_CHOICES
                               )
     content_type = models.CharField(_('content type'), max_length=128)
     content_encoding = models.CharField(_('content encoding'), max_length=64)
-    result = models.TextField(null=True, default=None, editable=False)
+    result = JSONField(null=True, editable=False, max_length=JSON_MAX_LENGTH)
     date_done = models.DateTimeField(_('done at'), auto_now=True)
     traceback = models.TextField(_('traceback'), blank=True, null=True)
     hidden = models.BooleanField(editable=False, default=False, db_index=True)
